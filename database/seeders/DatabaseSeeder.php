@@ -16,12 +16,8 @@ class DatabaseSeeder extends Seeder
             AdminUserSeeder::class,
             CategoryAndJobTypeSeeder::class,
             JobSeeder::class,
+            ApplicantSeeder::class,
         ]);
-
-        \App\Models\Category::factory(5)->create();
-        \App\Models\JobType::factory(5)->create();
-
-    
     }
     
 }
