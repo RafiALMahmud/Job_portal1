@@ -11,6 +11,7 @@
 	<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" type="text/css" href="{{ asset('assets/css/style.css') }}" />
     {{-- the above line sets the path for css --}}
+    @yield('customCss')
 	<!-- Fav Icon -->
 	<link rel="shortcut icon" type="image/x-icon" href="#" />
 </head>
@@ -27,6 +28,20 @@
 					<li class="nav-item">
 						<a class="nav-link" aria-current="page" href="{{ route('home') }}">Home</a>
 					</li>										
+					@if(Auth::check())
+					<li class="nav-item">
+						<a class="nav-link" href="{{ route('people.index') }}">Find People</a>
+					</li>
+					<li class="nav-item">
+						<a class="nav-link" href="{{ route('messages.index') }}">Messages</a>
+					</li>
+					<li class="nav-item">
+						<a class="nav-link" href="{{ route('connections.index') }}">My Connections</a>
+					</li>
+					<li class="nav-item">
+						<a class="nav-link" href="{{ route('connections.pending') }}">Connection Requests</a>
+					</li>
+					@endif
 				</ul>				
 
 				@if (!Auth::check())
@@ -206,4 +221,3 @@ $(document).on('click', '#markAllAsReadAspirant', function(e) {
 @yield('customJs')
 </body>
 </html>
-

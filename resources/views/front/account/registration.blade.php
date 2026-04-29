@@ -92,9 +92,9 @@
                     // Clear the form
                     $("#registrationForm")[0].reset();
                     
-                    // Redirect to login page after a short delay
+                    // Redirect to the Hirely email verification page after a short delay
                     setTimeout(function() {
-                        window.location.href = '{{ route('account.login') }}';
+                        window.location.href = response.redirect;
                     }, 2000);
                     
                 } else {
@@ -113,7 +113,6 @@
     });
 </script>
 @endsection
-
 
 
 

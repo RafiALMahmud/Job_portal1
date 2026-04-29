@@ -3,7 +3,7 @@
         @if(Auth::user()->image)
             <img src="{{ Storage::url('profile/' . Auth::user()->image) }}" alt="avatar" class="rounded-circle img-fluid" style="width: 150px;">
         @else
-            <img src="assets/assets/images/avatar7.png" alt="avatar" class="rounded-circle img-fluid" style="width: 150px;">
+            <img src="{{ asset('assets/images/avatar7.png') }}" alt="avatar" class="rounded-circle img-fluid" style="width: 150px;">
         @endif
         <h5 class="mt-3 pb-0">{{ Auth::user()->name }}</h5>
         <p class="text-muted mb-1 fs-6">Employer</p>

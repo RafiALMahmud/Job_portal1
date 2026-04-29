@@ -4,12 +4,23 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use App\Models\Concerns\EncryptsAttributesWithRSA;
 
 class Employer extends Model
 {
-    use HasFactory;
+    use HasFactory, EncryptsAttributesWithRSA;
 
-    protected $primaryKey = 'employer_id';
+    protected array $rsaEncrypted = [
+        'company_name',
+        'company_location',
+        'company_website',
+        'company_description',
+        'company_size',
+        'industry',
+        'founded_year',
+    ];
+
+    protected $primaryKey = 'id';
 
     protected $fillable = [
         'user_id',

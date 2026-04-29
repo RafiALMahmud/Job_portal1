@@ -7,6 +7,7 @@ use App\Models\Job;
 
 
 use Illuminate\Http\Request;
+use Illuminate\Pagination\LengthAwarePaginator;
 
 class JobsController extends Controller
 {
@@ -14,59 +15,61 @@ class JobsController extends Controller
     {
         $categories = Category::where('status', 1)->get();
         $jobTypes = JobType::where('status', 1)->get();
-        $jobs = Job::where('status', 1);
-
-        // Search using keyword
-        if (!empty($request->keyword)) {
-            $jobs = $jobs->where(function($query) use($request){
-                $query->orWhere('title', 'like', '%' .$request->keyword. '%');
-                $query->orWhere('keywords', 'like', '%' .$request->keyword. '%');
-            });
-        }
-
-        // Search using location
-        if (!empty($request->location)) {
-            $jobs = $jobs->where('location', $request->location);
-        }
+        $query = Job::where('status', 1)->with(['jobType', 'category']);
 
         // Search using category
         if (!empty($request->category)) {
-            $jobs = $jobs->where('category_id', $request->category);
+            $query = $query->where('category_id', $request->category);
         }
 
         // Search using job type
         if (!empty($request->jobType)) {
-            $jobs = $jobs->whereIn('job_type_id', $request->jobType);
+            $query = $query->whereIn('job_type_id', $request->jobType);
         }
 
-        // Search using experience
+        $jobs = $query->orderBy('created_at', 'DESC')->get();
+
+        if (!empty($request->keyword)) {
+            $keyword = mb_strtolower($request->keyword);
+            $jobs = $jobs->filter(function (Job $job) use ($keyword) {
+                return str_contains(mb_strtolower((string) $job->title), $keyword)
+                    || str_contains(mb_strtolower((string) $job->keywords), $keyword);
+            });
+        }
+
+        if (!empty($request->location)) {
+            $location = mb_strtolower($request->location);
+            $jobs = $jobs->filter(fn (Job $job) => mb_strtolower((string) $job->location) === $location);
+        }
+
         if (!empty($request->experience)) {
-            $jobs = $jobs->where('experience', $request->experience);
+            $experience = mb_strtolower($request->experience);
+            $jobs = $jobs->filter(fn (Job $job) => mb_strtolower((string) $job->experience) === $experience);
         }
 
         // Handle sorting
         if (!empty($request->sort)) {
             switch($request->sort) {
                 case 'latest':
-                    $jobs = $jobs->orderBy('created_at', 'DESC');
+                    $jobs = $jobs->sortByDesc('created_at');
                     break;
                 case 'oldest':
-                    $jobs = $jobs->orderBy('created_at', 'ASC');
+                    $jobs = $jobs->sortBy('created_at');
                     break;
                 case 'name_asc':
-                    $jobs = $jobs->orderBy('title', 'ASC');
+                    $jobs = $jobs->sortBy(fn (Job $job) => mb_strtolower((string) $job->title));
                     break;
                 case 'name_desc':
-                    $jobs = $jobs->orderBy('title', 'DESC');
+                    $jobs = $jobs->sortByDesc(fn (Job $job) => mb_strtolower((string) $job->title));
                     break;
                 default:
-                    $jobs = $jobs->orderBy('created_at', 'DESC');
+                    $jobs = $jobs->sortByDesc('created_at');
             }
         } else {
-            $jobs = $jobs->orderBy('created_at', 'DESC'); // Default sorting
+            $jobs = $jobs->sortByDesc('created_at');
         }
 
-        $jobs = $jobs->with(['jobType', 'category'])->paginate(9);
+        $jobs = $this->paginateCollection($jobs->values(), 9, $request);
 
         // Pass data to the view
         return view('front.jobs', [
@@ -85,7 +88,7 @@ class JobsController extends Controller
 
     public function search(Request $request)
     {
-        $query = Job::where('status', 1);
+        $query = Job::where('status', 1)->with(['jobType', 'category']);
         $role = $request->input('role', 'aspirant'); // Default to aspirant if not specified
 
         // Filter based on role
@@ -99,26 +102,24 @@ class JobsController extends Controller
             $query->where('status', 1);
         }
 
-        // Search by job title (case-insensitive)
-        if ($request->filled('search')) {
-            $query->where(function($q) use ($request) {
-                $q->whereRaw('LOWER(title) LIKE ?', ['%' . strtolower($request->search) . '%']);
-            });
-        }
-
-        // Search by location (case-insensitive)
-        if ($request->filled('location')) {
-            $query->where(function($q) use ($request) {
-                $q->whereRaw('LOWER(location) LIKE ?', ['%' . strtolower($request->location) . '%']);
-            });
-        }
-
         // Search by category
         if ($request->filled('category')) {
             $query->where('category_id', $request->category);
         }
 
-        $jobs = $query->orderBy('created_at', 'DESC')->paginate(9);
+        $jobs = $query->orderBy('created_at', 'DESC')->get();
+
+        if ($request->filled('search')) {
+            $search = mb_strtolower($request->search);
+            $jobs = $jobs->filter(fn (Job $job) => str_contains(mb_strtolower((string) $job->title), $search));
+        }
+
+        if ($request->filled('location')) {
+            $location = mb_strtolower($request->location);
+            $jobs = $jobs->filter(fn (Job $job) => str_contains(mb_strtolower((string) $job->location), $location));
+        }
+
+        $jobs = $this->paginateCollection($jobs->values(), 9, $request);
         $categories = Category::where('status', 1)->get();
         $jobTypes = JobType::where('status', 1)->get();
 
@@ -128,5 +129,22 @@ class JobsController extends Controller
             'jobTypes' => $jobTypes,
             'selectedRole' => $role,
         ]);
+    }
+
+    private function paginateCollection($items, int $perPage, Request $request): LengthAwarePaginator
+    {
+        $page = LengthAwarePaginator::resolveCurrentPage();
+        $pageItems = $items->slice(($page - 1) * $perPage, $perPage)->values();
+
+        return new LengthAwarePaginator(
+            $pageItems,
+            $items->count(),
+            $perPage,
+            $page,
+            [
+                'path' => $request->url(),
+                'query' => $request->query(),
+            ]
+        );
     }
 }

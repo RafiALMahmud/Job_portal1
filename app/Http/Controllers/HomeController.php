@@ -11,13 +11,13 @@ class HomeController extends Controller
     public function index()  {
         $categories = Category::where('status', 1)->orderBy('name','ASC')->take(8)->get();
 
-        // Get top 5 highest paying jobs
+        // Salary is encrypted in storage, so ranking is done after model decryption.
         $topPaidJobs = Job::with('jobType')
-                   ->whereNotNull('salary')
-                   ->where('salary', '!=', '')
-                   ->orderByRaw('CAST(salary AS DECIMAL(10,2)) DESC')
-                   ->take(5)
-                   ->get();
+                   ->where('status', 1)
+                   ->get()
+                   ->filter(fn (Job $job) => $job->salary !== null && $job->salary !== '')
+                   ->sortByDesc(fn (Job $job) => (float) preg_replace('/[^0-9.]/', '', (string) $job->salary))
+                   ->take(5);
         
         $latestJobs = Job::where('status', 1)
                    ->with('jobType')

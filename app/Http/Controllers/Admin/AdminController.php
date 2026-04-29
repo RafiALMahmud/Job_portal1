@@ -28,9 +28,13 @@ class AdminController extends Controller
 
     public function storeUser(Request $request)
     {
+        $request->merge([
+            'email_lookup_hash' => User::emailLookupHash((string) $request->email),
+        ]);
+
         $validator = Validator::make($request->all(), [
             'name' => 'required',
-            'email' => 'required|email|unique:users,email',
+            'email' => 'required|email',
             'password' => 'required|min:5',
             'user_type' => 'required|in:aspirant,employer,admin'
         ]);
@@ -42,10 +46,18 @@ class AdminController extends Controller
             ]);
         }
 
+        if (User::where('email_lookup_hash', $request->email_lookup_hash)->exists()) {
+            return response()->json([
+                'status' => false,
+                'errors' => ['email' => ['The email has already been taken.']]
+            ]);
+        }
+
         try {
             $user = new User();
             $user->name = $request->name;
             $user->email = $request->email;
+            $user->email_lookup_hash = $request->email_lookup_hash;
             $user->password = Hash::make($request->password);
             $user->user_type = $request->user_type;
             $user->save();

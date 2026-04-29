@@ -9,6 +9,8 @@ use App\Http\Controllers\Admin\AdminController;
 use App\Http\Controllers\Employer\DashboardController as EmployerDashboardController;
 use App\Http\Controllers\Employer\EmployerController;
 use App\Http\Controllers\JobApplicationController;
+use App\Http\Controllers\ConnectionController;
+use App\Http\Controllers\MessageController;
 use App\Models\Applicant;
 
 // Home Route
@@ -16,6 +18,24 @@ Route::get('/', [HomeController::class, 'index'])->name('home');
 Route::get('/jobs', [JobsController::class, 'index'])->name('jobs');
 Route::get('/jobs/search', [JobsController::class, 'search'])->name('jobs.search');
 Route::get('/jobs/{job}', [JobsController::class, 'detail'])->name('jobs.detail');
+
+Route::group(['middleware' => 'guest'], function () {
+    Route::get('/register/verify-email', [AccountController::class, 'showRegisterVerifyForm'])->name('account.showRegisterVerifyForm');
+    Route::post('/register/verify-email', [AccountController::class, 'verifyRegisterOtp'])->name('account.verifyRegisterOtp');
+    Route::post('/register/resend-code', [AccountController::class, 'resendRegisterOtp'])->name('account.resendRegisterOtp');
+
+    Route::get('/login/verify-otp', [AccountController::class, 'showLoginOtp'])->name('account.showLoginOtp');
+    Route::post('/login/verify-otp', [AccountController::class, 'verifyLoginOtp'])->name('account.verifyLoginOtp');
+    Route::post('/login/resend-otp', [AccountController::class, 'resendLoginOtp'])->name('account.resendLoginOtp');
+
+    Route::get('/forgot-password', [AccountController::class, 'showForgetPassword'])->name('account.forgetPassword');
+    Route::post('/forgot-password/send-code', [AccountController::class, 'sendForgotPasswordCode'])->name('account.sendForgotPasswordCode');
+    Route::get('/forgot-password/verify-code', [AccountController::class, 'showForgotPasswordCodeForm'])->name('account.showForgotPasswordCodeForm');
+    Route::post('/forgot-password/verify-code', [AccountController::class, 'verifyForgotPasswordCode'])->name('account.verifyForgotPasswordCode');
+    Route::post('/forgot-password/resend-code', [AccountController::class, 'resendForgotPasswordCode'])->name('account.resendForgotPasswordCode');
+    Route::get('/reset-password', [AccountController::class, 'showResetPasswordForm'])->name('account.showResetPasswordForm');
+    Route::post('/reset-password', [AccountController::class, 'resetPassword'])->name('account.resetPassword');
+});
 
 
 // Admin Routes
@@ -52,12 +72,8 @@ Route::group(['prefix' => 'account'], function () {
         Route::post('/process-register', [AccountController::class, 'processRegistration'])->name('account.processRegistration');
         Route::get('/login', [AccountController::class, 'login'])->name('account.login');
         Route::post('/authenticate', [AccountController::class, 'authenticate'])->name('account.authenticate');
-        
         // Forget Password Routes
-        Route::get('/forget-password', [AccountController::class, 'showForgetPassword'])->name('account.forgetPassword');
-        Route::post('/generate-reset-code', [AccountController::class, 'generateResetCode'])->name('account.generateResetCode');
-        Route::post('/verify-code', [AccountController::class, 'verifyCode'])->name('account.verifyCode');
-        Route::post('/reset-password', [AccountController::class, 'resetPassword'])->name('account.resetPassword');
+        Route::get('/forget-password', [AccountController::class, 'showForgetPassword'])->name('account.legacyForgetPassword');
     });
 
     // Authenticated Routes
@@ -116,4 +132,17 @@ Route::middleware(['auth'])->group(function () {
     Route::post('/jobs/{job}/save', [JobApplicationController::class, 'saveJob'])->name('jobs.save');
     Route::delete('/jobs/{job}/unsave', [JobApplicationController::class, 'unsaveJob'])->name('jobs.unsave');
     Route::get('/account/saved-jobs', [JobApplicationController::class, 'savedJobs'])->name('account.savedJobs');
+
+    Route::get('/people', [ConnectionController::class, 'index'])->name('people.index');
+    Route::post('/connections/request/{user}', [ConnectionController::class, 'sendRequest'])->name('connections.request');
+    Route::post('/connections/accept/{request}', [ConnectionController::class, 'acceptRequest'])->name('connections.accept');
+    Route::post('/connections/reject/{request}', [ConnectionController::class, 'rejectRequest'])->name('connections.reject');
+    Route::post('/connections/cancel/{request}', [ConnectionController::class, 'cancelRequest'])->name('connections.cancel');
+    Route::get('/connections', [ConnectionController::class, 'myConnections'])->name('connections.index');
+    Route::get('/connections/requests', [ConnectionController::class, 'pendingRequests'])->name('connections.pending');
+
+    Route::get('/messages', [MessageController::class, 'index'])->name('messages.index');
+    Route::get('/messages/{user}', [MessageController::class, 'show'])->name('messages.show');
+    Route::post('/messages/{user}', [MessageController::class, 'store'])->name('messages.store');
+    Route::post('/messages/{message}/read', [MessageController::class, 'markAsRead'])->name('messages.read');
 });
