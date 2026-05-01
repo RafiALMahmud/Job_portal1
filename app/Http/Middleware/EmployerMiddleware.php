@@ -14,6 +14,10 @@ class EmployerMiddleware
             return $next($request);
         }
 
+        if ($request->expectsJson() || $request->ajax()) {
+            return response()->json(['message' => 'Access denied. Only employers can access this page.'], 403);
+        }
+
         return redirect()->route('home')->with('error', 'Access denied. Only employers can access this page.');
     }
 } 

@@ -2,6 +2,7 @@
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
+use Illuminate\Support\Facades\Auth;
 
 /*
 |--------------------------------------------------------------------------
@@ -14,6 +15,12 @@ use Illuminate\Support\Facades\Route;
 |
 */
 
-Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
-    return $request->user();
+Route::middleware('secureSession')->get('/user', function (Request $request) {
+    return response()->json([
+        'id' => Auth::id(),
+        'name' => Auth::user()?->name,
+        'email' => Auth::user()?->email,
+        'user_type' => Auth::user()?->user_type,
+        'session_expires_at' => optional($request->attributes->get('secure_session'))->expires_at?->toIso8601String(),
+    ]);
 });

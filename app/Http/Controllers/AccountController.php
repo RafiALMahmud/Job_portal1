@@ -13,12 +13,16 @@ use App\Models\Job;
 use App\Models\Employer;
 use App\Models\VerificationCode;
 use App\Services\Auth\EmailOtpService;
+use App\Services\Auth\SecureSessionService;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 
 class AccountController extends Controller
 {
-    public function __construct(private EmailOtpService $emailOtpService)
+    public function __construct(
+        private EmailOtpService $emailOtpService,
+        private SecureSessionService $secureSessionService
+    )
     {
     }
 
@@ -247,11 +251,36 @@ class AccountController extends Controller
             return back()->withErrors(['otp' => $result['message']]);
         }
 
-        Auth::login($user);
+        $issuedSession = $this->secureSessionService->createSession($user, $request);
         $request->session()->regenerate();
         $request->session()->forget(['pending_login_user_id', 'pending_login_email']);
 
-        return redirect()->route($user->user_type === 'admin' ? 'admin.dashboard' : 'account.profile');
+        $redirectRoute = $user->user_type === 'admin' ? 'admin.dashboard' : 'account.profile';
+
+        if ($request->expectsJson() || $request->ajax()) {
+            return response()->json([
+                'status' => true,
+                'token' => $issuedSession['token'],
+                'expires_at' => $issuedSession['session']->expires_at?->toIso8601String(),
+                'redirect' => route($redirectRoute),
+            ])->withCookie(
+                $this->secureSessionService->makeCookie(
+                    $issuedSession['token'],
+                    $issuedSession['session']->expires_at
+                )
+            );
+        }
+
+        return redirect()->route($redirectRoute)
+            ->with('success', 'Login successful. Your secure session is now active.')
+            ->with('issued_session_token', $issuedSession['token'])
+            ->with('issued_session_expires_at', $issuedSession['session']->expires_at?->toDateTimeString())
+            ->withCookie(
+                $this->secureSessionService->makeCookie(
+                    $issuedSession['token'],
+                    $issuedSession['session']->expires_at
+                )
+            );
     }
 
     public function resendLoginOtp(Request $request)
@@ -417,12 +446,33 @@ class AccountController extends Controller
     }
 
     // Logout the user
-    public function logout()
+    public function logout(Request $request)
     {
-        Auth::logout();
-        request()->session()->invalidate();
-        request()->session()->regenerateToken();
-        return redirect()->route('account.login');
+        $session = $request->attributes->get('secure_session');
+
+        if ($session) {
+            $this->secureSessionService->revokeSession($session);
+        }
+
+        $request->session()->invalidate();
+        $request->session()->regenerateToken();
+
+        return redirect()->route('account.login')
+            ->with('success', 'Logged out successfully. The current secure session has been revoked.')
+            ->withCookie($this->secureSessionService->forgetCookie());
+    }
+
+    public function logoutAllDevices(Request $request)
+    {
+        $user = Auth::user();
+        $this->secureSessionService->revokeAllSessionsForUser($user);
+
+        $request->session()->invalidate();
+        $request->session()->regenerateToken();
+
+        return redirect()->route('account.login')
+            ->with('success', 'All of your secure sessions have been revoked.')
+            ->withCookie($this->secureSessionService->forgetCookie());
     }
 
     public function createJob()
@@ -601,23 +651,24 @@ class AccountController extends Controller
         ]);
     }
 
-    public function deleteAccount()
+    public function deleteAccount(Request $request)
     {
         $user = Auth::user();
+        $this->secureSessionService->revokeAllSessionsForUser($user);
         
         // Delete all jobs associated with the user
         Job::where('user_id', $user->id)->delete();
         
         // Delete the user
         $user->delete();
-        
-        // Logout the user
-        Auth::logout();
+
+        $request->session()->invalidate();
+        $request->session()->regenerateToken();
         
         return response()->json([
             'status' => true,
             'message' => 'Account deleted successfully'
-        ]);
+        ])->withCookie($this->secureSessionService->forgetCookie());
     }
 
     public function showForgetPassword()

@@ -14,6 +14,10 @@ class IsAdmin
             return $next($request);
         }
 
+        if ($request->expectsJson() || $request->ajax()) {
+            return response()->json(['message' => 'Unauthorized access.'], 403);
+        }
+
         abort(403, 'Unauthorized access.');
     }
 }

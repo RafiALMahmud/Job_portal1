@@ -4,16 +4,16 @@ namespace App\Models;
 
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
-use Laravel\Sanctum\HasApiTokens;
 use App\Models\Concerns\EncryptsAttributesWithRSA;
 use App\Services\Crypto\ECCKeyManager;
 use App\Services\Crypto\RSAFieldCrypto;
 
 class User extends Authenticatable
 {
-    use HasApiTokens, HasFactory, Notifiable, EncryptsAttributesWithRSA {
+    use HasFactory, Notifiable, EncryptsAttributesWithRSA {
         EncryptsAttributesWithRSA::setAttribute as protected setRsaEncryptedAttribute;
     }
 
@@ -104,6 +104,11 @@ class User extends Authenticatable
     public function eccKeys()
     {
         return $this->hasMany(ECCKey::class);
+    }
+
+    public function secureSessions(): HasMany
+    {
+        return $this->hasMany(UserSession::class, 'user_id');
     }
 
     public function sentMessages()

@@ -39,7 +39,7 @@ Route::group(['middleware' => 'guest'], function () {
 
 
 // Admin Routes
-Route::group(['prefix' => 'admin', 'middleware' => ['auth', 'isAdmin']], function () {
+Route::group(['prefix' => 'admin', 'middleware' => ['secureSession', 'isAdmin']], function () {
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('admin.dashboard');
     Route::get('/manage_users', [AdminController::class, 'index'])->name('admin.manage_users');
     Route::delete('/admin/users/{user}', [AdminController::class, 'destroyUser'])->name('admin.users.destroy');
@@ -77,9 +77,10 @@ Route::group(['prefix' => 'account'], function () {
     });
 
     // Authenticated Routes
-    Route::group(['middleware' => 'auth'], function () {
+    Route::group(['middleware' => 'secureSession'], function () {
         Route::get('/profile', [AccountController::class, 'profile'])->name('account.profile');
-        Route::get('/logout', [AccountController::class, 'logout'])->name('account.logout');
+        Route::post('/logout', [AccountController::class, 'logout'])->name('account.logout');
+        Route::post('/logout-all-devices', [AccountController::class, 'logoutAllDevices'])->name('account.logoutAllDevices');
         Route::put('/update-profile', [AccountController::class, 'updateProfile'])->name('account.updateProfile');
         Route::post('/update-profile-picture', [AccountController::class, 'updateProfilePicture'])->name('account.updateProfilePicture');
         Route::put('/update-password', [AccountController::class, 'updatePassword'])->name('account.updatePassword');
@@ -102,7 +103,7 @@ Route::group(['prefix' => 'account'], function () {
 });
 
 // Employer Dashboard Routes
-Route::middleware(['auth', 'employer'])->prefix('employer')->name('employer.')->group(function () {
+Route::middleware(['secureSession', 'employer'])->prefix('employer')->name('employer.')->group(function () {
     Route::get('/dashboard', [EmployerDashboardController::class, 'index'])->name('dashboard');
     Route::post('/update-company-info', [EmployerController::class, 'updateCompanyInfo'])->name('updateCompanyInfo');
     
@@ -124,7 +125,7 @@ Route::middleware(['auth', 'employer'])->prefix('employer')->name('employer.')->
     Route::post('/applicants/{applicant:applicant_id}/interview', [EmployerDashboardController::class, 'interviewApplicant'])->name('applicants.interview');
 });
 
-Route::middleware(['auth'])->group(function () {
+Route::middleware(['secureSession'])->group(function () {
     Route::get('/jobs/{job}/apply', [JobApplicationController::class, 'showApplicationForm'])->name('jobs.apply.form');
     Route::post('/jobs/{job}/apply', [JobApplicationController::class, 'apply'])->name('jobs.apply');
     Route::get('/account/jobs-applied', [JobApplicationController::class, 'jobsApplied'])->name('account.jobsApplied');

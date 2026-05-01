@@ -18,7 +18,10 @@ class RedirectIfAuthenticated
 
         foreach ($guards as $guard) {
             if (Auth::guard($guard)->check()) {
-                return redirect(route('account.profile')); // Redirect logged-in users to their profile
+                $user = Auth::guard($guard)->user();
+                $targetRoute = $user?->user_type === 'admin' ? 'admin.dashboard' : 'account.profile';
+
+                return redirect(route($targetRoute));
             }
         }
 
