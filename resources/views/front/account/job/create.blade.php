@@ -146,7 +146,7 @@
 
                         <div class="mb-4">
                             <label for="" class="mb-2">Website</label>
-                            <input type="text" placeholder="Website" id="website" name="website" class="form-control">
+                            <input type="text" placeholder="Website" id="company_website" name="company_website" class="form-control">
                         </div>
                     </div>
                     <div class="card-footer p-4">

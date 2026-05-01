@@ -27,7 +27,9 @@ class JobsController extends Controller
             $query = $query->whereIn('job_type_id', $request->jobType);
         }
 
-        $jobs = $query->orderBy('created_at', 'DESC')->get();
+        $jobs = $query->orderBy('created_at', 'DESC')
+            ->get()
+            ->filter(fn (Job $job) => $job->encryptedPayloadMacIsValid());
 
         if (!empty($request->keyword)) {
             $keyword = mb_strtolower($request->keyword);
@@ -44,7 +46,7 @@ class JobsController extends Controller
 
         if (!empty($request->experience)) {
             $experience = mb_strtolower($request->experience);
-            $jobs = $jobs->filter(fn (Job $job) => mb_strtolower((string) $job->experience) === $experience);
+            $jobs = $jobs->filter(fn (Job $job) => $this->matchesExperienceFilter($job, $experience));
         }
 
         // Handle sorting
@@ -81,6 +83,8 @@ class JobsController extends Controller
 
     public function detail($id){
         $job = Job::with(['jobType', 'category', 'user'])->findOrFail($id);
+        abort_unless($job->encryptedPayloadMacIsValid(), 404);
+
         return view('front.job-detail', [
             'job' => $job
         ]);
@@ -107,7 +111,9 @@ class JobsController extends Controller
             $query->where('category_id', $request->category);
         }
 
-        $jobs = $query->orderBy('created_at', 'DESC')->get();
+        $jobs = $query->orderBy('created_at', 'DESC')
+            ->get()
+            ->filter(fn (Job $job) => $job->encryptedPayloadMacIsValid());
 
         if ($request->filled('search')) {
             $search = mb_strtolower($request->search);
@@ -146,5 +152,35 @@ class JobsController extends Controller
                 'query' => $request->query(),
             ]
         );
+    }
+
+    private function matchesExperienceFilter(Job $job, string $experience): bool
+    {
+        $jobExperience = mb_strtolower(trim((string) $job->experience));
+        if ($jobExperience === $experience) {
+            return true;
+        }
+
+        if ($experience === '10_plus') {
+            return str_contains($jobExperience, '10+') || str_contains($jobExperience, '10 plus');
+        }
+
+        if (!ctype_digit($experience)) {
+            return false;
+        }
+
+        preg_match_all('/\d+/', $jobExperience, $matches);
+        $years = array_map('intval', $matches[0]);
+        if ($years === []) {
+            return false;
+        }
+
+        $target = (int) $experience;
+
+        if (count($years) === 1) {
+            return $years[0] === $target;
+        }
+
+        return $target >= min($years) && $target <= max($years);
     }
 }

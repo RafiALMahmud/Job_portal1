@@ -38,9 +38,20 @@ class ApplicantSeeder extends Seeder
         ];
 
         foreach ($aspirants as $aspirant) {
+            $email = mb_strtolower($aspirant['email']);
+            $lookupHash = User::emailLookupHash($email);
+
             User::updateOrCreate(
-                ['email' => $aspirant['email']],
-                $aspirant
+                ['email_lookup_hash' => $lookupHash],
+                [
+                    'name' => $aspirant['name'],
+                    'email' => $email,
+                    'email_lookup_hash' => $lookupHash,
+                    'password' => $aspirant['password'],
+                    'user_type' => $aspirant['user_type'],
+                    'email_verified_at' => Carbon::now(),
+                    'is_email_verified' => true,
+                ]
             );
         }
 
@@ -50,7 +61,10 @@ class ApplicantSeeder extends Seeder
         }
 
         $users = User::query()
-            ->whereIn('email', array_column($aspirants, 'email'))
+            ->whereIn('email_lookup_hash', array_map(
+                fn (string $email) => User::emailLookupHash($email),
+                array_column($aspirants, 'email')
+            ))
             ->orderBy('id')
             ->get();
 

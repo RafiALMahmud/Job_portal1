@@ -108,7 +108,13 @@
                                                                 </p>
                                                                 <p class="mb-0">
                                                                     <span class="fw-bolder">৳</span>
-                                                                    <span class="ps-1">{{ number_format((float) $job->salary) }}</span>
+                                                                    <span class="ps-1">
+                                                                        @if (is_numeric($job->salary))
+                                                                            {{ number_format((float) $job->salary) }}
+                                                                        @else
+                                                                            {{ $job->salary }}
+                                                                        @endif
+                                                                    </span>
                                                                 </p>
                                                             </div>
                                                             <div class="d-grid mt-3">
@@ -170,7 +176,13 @@
                                                 @if (!is_null($latestjob->salary))
                                                     <p class="mb-0">
                                                         <span class="fw-bolder">৳</span>
-                                                        <span class="ps-1">{{ number_format((float) $latestjob->salary) }}</span>
+                                                        <span class="ps-1">
+                                                            @if (is_numeric($latestjob->salary))
+                                                                {{ number_format((float) $latestjob->salary) }}
+                                                            @else
+                                                                {{ $latestjob->salary }}
+                                                            @endif
+                                                        </span>
                                                     </p>
                                                 @endif
                                             </div>

@@ -15,15 +15,19 @@ class HomeController extends Controller
         $topPaidJobs = Job::with('jobType')
                    ->where('status', 1)
                    ->get()
+                   ->filter(fn (Job $job) => $job->encryptedPayloadMacIsValid())
                    ->filter(fn (Job $job) => $job->salary !== null && $job->salary !== '')
                    ->sortByDesc(fn (Job $job) => (float) preg_replace('/[^0-9.]/', '', (string) $job->salary))
-                   ->take(5);
+                   ->take(5)
+                   ->values();
         
         $latestJobs = Job::where('status', 1)
                    ->with('jobType')
                    ->orderBy('created_at','DESC')
+                   ->get()
+                   ->filter(fn (Job $job) => $job->encryptedPayloadMacIsValid())
                    ->take(6)
-                   ->get();
+                   ->values();
 
         return view('front.home',[
            'categories' => $categories,

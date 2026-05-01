@@ -446,6 +446,7 @@ class AccountController extends Controller
             'vacancy' => 'required|integer',
             'location' => 'required|max:50',
             'description' => 'required',
+            'experience' => 'required|in:1,2,3,4,5,6,7,8,9,10,10_plus',
             'company_name' => 'required|min:3|max:75',
         ];
 
@@ -528,6 +529,7 @@ class AccountController extends Controller
             'vacancy' => 'required|integer',
             'location' => 'required|max:50',
             'description' => 'required',
+            'experience' => 'required|in:1,2,3,4,5,6,7,8,9,10,10_plus',
             'company_name' => 'required|min:3|max:75',
         ];
 
@@ -560,7 +562,7 @@ class AccountController extends Controller
             $job->experience = $request->experience;
             $job->company_name = $request->company_name;
             $job->company_location = $request->company_location;
-            $job->company_website = $request->website;
+            $job->company_website = $request->company_website;
             
             $job->save();
 
